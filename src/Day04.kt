@@ -1,5 +1,3 @@
-import kotlin.Array
-
 data class BingoSpace(var num: Int, var marked: Boolean)
 
 class BingoBoard {
@@ -9,8 +7,28 @@ class BingoBoard {
         }
     }
 
+    override fun toString(): String {
+        var s=""
+        for (col in 0..4) {
+            for (row in 0..4) {
+                val b =grid.get(col).get(row)
+                if(b.marked) s=s.plus("[") else  s=s.plus(" ")
+                s=s.plus(b.num.toString().padStart(2))
+                if(b.marked) s=s.plus("]") else  s=s.plus(" ")
+                if(row==4) s=s.plus("\n")
+            }
+        }
+        if(checkWin()){
+            s=s.plus("     WINNER\n")
+        }else{
+            s=s.plus("     not a win\n")
+        }
+        return s
+    }
+
     fun checkWin(): Boolean {
-        return grid.any { row -> row.all { it.marked } } || (0..4).any { grid[it].all { it.marked } }
+        return grid.any { row -> row.all { it.marked } } ||
+                (0..4).any {col -> (0..4).all{row->grid[row][col].marked }}
     }
 
     fun markNumber(number: Int): Boolean {
@@ -41,10 +59,11 @@ class BingoGame(val calls: List<Int>, var boards: List<BingoBoard>) {
     var callIndex = -1
 
     fun callNextNumber(): Int {
+        callIndex++
         if (callIndex >= calls.size) {
             return -1
         }
-        callIndex++
+
         for (b in boards) {
             b.markNumber(calls.get(callIndex))
         }
@@ -78,30 +97,46 @@ fun main() {
 
     fun part1(input: List<String>): Int {
         val g = readGame(input)
-        println(g.boards.first().getUncalledNumberSum())
-        var num=g.callNextNumber()
-        while (num>=0) {
-            for(b in g.boards){
-                if(b.checkWin()){
-                    return b.getUncalledNumberSum()*num
+        var num = g.callNextNumber()
+        while (num >= 0) {
+            for (b in g.boards) {
+                if (b.checkWin()) {
+                    return b.getUncalledNumberSum() * num
                 }
             }
-            num=g.callNextNumber()
+            num = g.callNextNumber()
         }
-        return input.size
+        return -1
     }
 
 
     fun part2(input: List<String>): Int {
-        return input.size
+        val g = readGame(input)
+        var num = g.callNextNumber()
+        var lastWinSum = 0
+        val remainingBoards = ArrayList(g.boards)
+        while (num >= 0) {
+            //println("Just called ${num}")
+            val iter = remainingBoards.iterator()
+            while (iter.hasNext()) {
+                val b = iter.next()
+                //println(b)
+                if (b.checkWin()) {
+                    lastWinSum = b.getUncalledNumberSum() * num
+                    iter.remove()
+                }
+            }
+            num = g.callNextNumber()
+        }
+        return lastWinSum
     }
 
     // test if implementation meets criteria from the description, like:
     val testInput = readInput("Day04_test")
     check(part1(testInput) == 4512)
-    //check(part2(testInput) == ???)
+    check(part2(testInput) == 1924)
 
     val input = readInput("Day04")
     println(part1(input))
-    //println(part2(input))
+    println(part2(input))
 }
